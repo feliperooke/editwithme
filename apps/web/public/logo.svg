@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254" width="1254" height="1254">
+  <defs>
+    <linearGradient id="gPurple" x1="0.12" y1="0.05" x2="0.78" y2="1">
+      <stop offset="0" stop-color="#B45FFF"/>
+      <stop offset="0.5" stop-color="#9C4CFB"/>
+      <stop offset="1" stop-color="#7B3DEE"/>
+    </linearGradient>
+    <linearGradient id="gBlue" x1="0.92" y1="0.15" x2="0.18" y2="1">
+      <stop offset="0" stop-color="#06B2FC"/>
+      <stop offset="0.55" stop-color="#0F91FC"/>
+      <stop offset="1" stop-color="#167FFC"/>
+    </linearGradient>
+    <linearGradient id="gDark" x1="0.42" y1="0.02" x2="0.58" y2="1">
+      <stop offset="0" stop-color="#0B183B"/>
+      <stop offset="1" stop-color="#152545"/>
+    </linearGradient>
+  </defs>
+
+  <!-- purple body (hexagon) -->
+  <path d="M 599.61,233.71 Q 650.00,205.00 696.26,239.99 L 993.74,465.01 Q 1040.00,500.00 1040.00,558.00 L 1040.00,717.00 Q 1040.00,775.00 990.43,805.12 L 694.57,984.88 Q 645.00,1015.00 597.09,982.31 L 267.91,757.69 Q 220.00,725.00 220.00,667.00 L 220.00,508.00 Q 220.00,450.00 270.39,421.29 Z" fill="url(#gPurple)"/>
+  <!-- blue overlay (lower-right) -->
+  <path d="M 800.00,341.00 L 991.65,467.97 Q 1040.00,500.00 1040.00,558.00 L 1040.00,717.00 Q 1040.00,775.00 990.43,805.12 L 694.57,984.88 Q 645.00,1015.00 597.13,982.25 L 455.00,885.00 C 548,700 690,486 800,341 Z" fill="url(#gBlue)"/>
+
+  <!-- heads -->
+  <circle cx="446" cy="202" r="90" fill="url(#gPurple)"/>
+  <circle cx="797" cy="1028" r="84" fill="url(#gBlue)"/>
+
+  <!-- dark center panel -->
+  <path d="M 629.10,335.89 Q 686.10,288.70 739.87,339.54 L 894.13,485.36 Q 947.90,536.20 900.46,593.00 L 660.94,879.80 Q 613.50,936.60 564.80,880.89 L 364.10,651.31 Q 315.40,595.60 372.40,548.41 Z" fill="url(#gDark)"/>
+
+  <!-- code glyphs  < / > -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="40">
+    <path d="M 562,524 L 470,600 L 562,676" stroke="#9E4EFB"/>
+    <path d="M 602,700 L 692,506" stroke="#F5F6FA"/>
+    <path d="M 726,524 L 818,600 L 726,676" stroke="#0FA6FD"/>
+  </g>
+</svg>

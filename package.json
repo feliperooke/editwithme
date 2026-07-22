@@ -1,0 +1,16 @@
+{
+  "name": "html-editor",
+  "private": true,
+  "packageManager": "pnpm@11.13.1",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "generate:api": "turbo run generate:api"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0"
+  },
+  "dependencies": {
+    "react-skills-icons": "^1.0.10"
+  }
+}

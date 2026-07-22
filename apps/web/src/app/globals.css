@@ -1,0 +1,1438 @@
+/* Layer order defines cascade precedence. `utilities` MUST come after
+   `base`, otherwise the base reset (zero padding/margin) would nullify
+   the components' spacing utilities. */
+@layer theme, base, components, utilities;
+
+/* Tailwind v4 WITHOUT preflight: the preflight reset would change how
+   uploaded documents render (tables, headings, borders) inside the
+   sheet. The compatibility rules shadcn/ui needs live in @layer base
+   below, always excluding .doc-sheet. */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "tw-animate-css";
+
+/* shadcn/ui tokens mapped into the Tailwind theme */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  /* shadcn/ui tokens (light theme, app identity) */
+  --background: rgba(255, 255, 255, 0.66);
+  --foreground: #1f1f1f;
+  --card: #ffffff;
+  --card-foreground: #1f1f1f;
+  --popover: rgba(255, 255, 255, 0.72);
+  --popover-foreground: #1f1f1f;
+  --primary: rgba(32, 33, 36, 0.85);
+  --primary-foreground: #ffffff;
+  --secondary: #f1f3f4;
+  --secondary-foreground: #1f1f1f;
+  --muted: #f1f3f4;
+  --muted-foreground: #5f6368;
+  --accent: #f1f3f4;
+  --accent-foreground: #1f1f1f;
+  --destructive: #d93025;
+  --border: #dadce0;
+  --input: #dadce0;
+  --ring: #9aa0a6;
+  --radius: 0.5rem;
+
+  /* Liquid Glass primitives */
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-bg-strong: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.65);
+  --glass-blur: blur(28px) saturate(190%);
+  --glass-shadow: 0 8px 32px rgba(31, 38, 50, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --tooltip-bg: rgba(28, 28, 30, 0.72);
+}
+
+/* Glass depends on backdrop-filter. Where it is unsupported or
+   disabled (older browsers, GPU acceleration off — common outside
+   macOS), translucency without blur reads as a washed-out layer over
+   the page, so the glass surfaces fall back to near-opaque whites with
+   a visible border. Every surface uses these variables, so the
+   fallback applies everywhere at once. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --glass-bg: rgba(251, 252, 254, 0.96);
+    --glass-bg-strong: rgba(251, 252, 254, 0.98);
+    --glass-border: rgba(208, 214, 222, 0.9);
+    --glass-shadow: 0 8px 32px rgba(31, 38, 50, 0.16);
+    --tooltip-bg: rgba(28, 28, 30, 0.95);
+  }
+}
+
+:root {
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial,
+    sans-serif;
+
+  /* Legacy app tokens */
+  --bg-app: #f8f9fa;
+  --bg-toolbar: #f1f3f4;
+  --text: #1f1f1f;
+  --text-muted: #5f6368;
+  --primary-hover: #3c4043;
+  --danger: #d93025;
+}
+
+@layer base {
+  /* App-chrome reset only: the document sheet is excluded so elements
+     inside it keep browser default rendering (blockquote indent, list
+     bullets, heading margins…) exactly as the uploaded file would look
+     in a browser. */
+  :where(:not(.doc-sheet, .doc-sheet *)) {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* No-preflight compat: `border-*` utilities assume solid border-style
+     and zero width by default. Applied outside the document sheet so it
+     never interferes with the original CSS. */
+  :where(:not(.doc-sheet, .doc-sheet *)),
+  :where(:not(.doc-sheet, .doc-sheet *))::before,
+  :where(:not(.doc-sheet, .doc-sheet *))::after {
+    border-width: 0;
+    border-style: solid;
+    border-color: var(--border);
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    font-family: var(--font-ui);
+    /* Glass needs detail behind it to visibly refract: a fine grain
+       layer (SVG noise) plus tighter, stronger gradient blobs — blurring
+       a perfectly smooth gradient looks identical to not blurring it */
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.23 0 0 0 0 0.26 0 0 0 0 0.32 0 0 0 0.055 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E"),
+      radial-gradient(42rem 28rem at 12% -8%, rgba(158, 174, 198, 0.62), transparent 52%),
+      radial-gradient(38rem 26rem at 108% 12%, rgba(203, 192, 174, 0.55), transparent 50%),
+      radial-gradient(36rem 36rem at 50% 115%, rgba(168, 180, 198, 0.52), transparent 52%),
+      var(--bg-app);
+    background-attachment: fixed;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button {
+    font: inherit;
+    cursor: pointer;
+  }
+
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+}
+
+/* ---------- Home page ---------- */
+
+.home {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  margin-bottom: 24px;
+  position: sticky;
+  top: 12px;
+  z-index: 20;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow: var(--glass-shadow);
+}
+
+.home-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-brand h1 {
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.home-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.home-error {
+  color: var(--danger);
+  padding-bottom: 16px;
+}
+
+.home-offline {
+  color: var(--text-muted);
+  font-size: 13px;
+  padding-bottom: 16px;
+}
+
+.home-list h2 {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding-bottom: 12px;
+}
+
+.home-empty {
+  color: var(--text-muted);
+  padding: 32px 0;
+}
+
+.doc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 16px;
+}
+
+.doc-card {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(31, 38, 50, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  transition: transform 0.18s ease, box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+.doc-card:hover {
+  transform: translateY(-2px);
+  background: var(--glass-bg-strong);
+  box-shadow: 0 12px 32px rgba(31, 38, 50, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.doc-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  padding: 18px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+}
+
+/* First-page thumbnail: A4 render cropped to the top portion; the file
+   icon behind it doubles as loading/error fallback */
+.doc-card-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 794 / 520;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid rgba(31, 38, 50, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.doc-card-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+.doc-card-title {
+  font-weight: 500;
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.doc-card-date {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.doc-card-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border: none;
+  background: none;
+  font-size: 15px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.doc-card:hover .doc-card-delete {
+  opacity: 0.7;
+}
+
+.doc-card-delete:hover {
+  opacity: 1;
+}
+
+.doc-card-confirm {
+  display: flex;
+  gap: 6px;
+  padding: 0 12px 12px;
+}
+
+/* ---------- Workspace gate ---------- */
+
+.workspace-gate {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.workspace-gate-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  max-width: 380px;
+  padding: 28px 26px;
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow: var(--glass-shadow);
+}
+
+.workspace-gate-card h2 {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.workspace-gate-card p {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.workspace-gate-form {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* ---------- Editor page ---------- */
+
+.editor-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.editor-loading {
+  padding: 48px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* Flat, quiet header: blends into the page background so the glass
+   toolbar below is the visual anchor */
+.editor-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 24px 4px;
+  background: transparent;
+  flex-wrap: wrap;
+}
+
+.editor-back {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.editor-header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 200px;
+}
+
+.editor-title {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: 500;
+  padding: 2px 6px;
+  width: 560px;
+  max-width: 100%;
+}
+
+.editor-title:hover,
+.editor-title:focus {
+  border-color: var(--border);
+  outline: none;
+}
+
+.editor-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 6px;
+}
+
+.editor-meta-text {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Liquid glass status dot: translucent tint of the state color */
+.status-dot {
+  --status-color: #f0ad00;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--status-color) 72%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 1px 3px rgba(31, 38, 50, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.status-connected {
+  --status-color: #188038;
+}
+
+.status-disconnected {
+  --status-color: var(--danger);
+}
+
+.editor-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+/* ---------- Share menu & view mode ---------- */
+
+.share-menu-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.share-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 40;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(31, 38, 50, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* Left-anchored variant (hamburger menu at the header's left edge) */
+.share-menu-left {
+  left: 0;
+  right: auto;
+}
+
+.share-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  border-radius: 10px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.share-menu-item:hover {
+  background: rgba(255, 255, 255, 0.75);
+}
+
+/* Armed destructive item (e.g. Reset Document awaiting confirmation) */
+.share-menu-item-danger,
+.share-menu-item-danger:hover {
+  color: #c0392b;
+  background: rgba(217, 48, 37, 0.08);
+}
+.share-menu-item-danger small {
+  color: rgba(192, 57, 43, 0.75);
+}
+
+.share-menu-item small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.view-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(31, 38, 50, 0.08);
+  border-radius: 9999px;
+  padding: 1px 8px;
+}
+
+/* ---------- Presence ---------- */
+
+.presence {
+  display: flex;
+  align-items: center;
+}
+
+/* Liquid glass coin: translucent tint of the user's identity color
+   (--user-color set inline by PresenceAvatars) */
+.presence-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--user-color, #5f6368) 62%, transparent);
+  backdrop-filter: blur(10px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 2px 8px rgba(31, 38, 50, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  margin-left: -8px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.presence-avatar:first-child {
+  margin-left: 0;
+}
+
+.presence-overflow {
+  margin-left: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.presence-count {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ---------- Toolbar ---------- */
+
+.toolbar {
+  position: sticky;
+  top: 8px;
+  /* Above the margin comment cards (z 15-17), so they slide underneath
+     the glass capsule when the page scrolls */
+  z-index: 30;
+  padding: 8px 16px;
+  background: transparent;
+}
+
+.toolbar-inner {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 9999px;
+  padding: 4px 14px;
+  min-height: 40px;
+  box-shadow: var(--glass-shadow);
+}
+
+.toolbar-loading {
+  min-height: 56px;
+}
+
+.tb-btn {
+  border: none;
+  background: none;
+  border-radius: 9999px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.tb-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.tb-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tb-btn-active {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 4px rgba(31, 38, 50, 0.18);
+}
+
+.tb-sep {
+  width: 1px;
+  height: 22px;
+  background: rgba(31, 38, 50, 0.16);
+  margin: 0 6px;
+}
+
+.tb-link-input {
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 9999px;
+  padding: 4px 8px;
+  font-size: 13px;
+  width: 260px;
+}
+
+/* ---------- Document sheet ---------- */
+
+.editor-canvas {
+  position: relative;
+  flex: 1;
+  padding: 20px 16px 80px;
+}
+
+.doc-sheet {
+  max-width: 850px;
+  min-height: 1056px;
+  margin: 0 auto;
+  /* Stays solid white: document fidelity is not part of the glass chrome */
+  background: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(31, 38, 50, 0.14);
+  cursor: text;
+}
+
+/* Uploaded documents whose CSS reads as a viewport layout (grids,
+   sidebars, full-page backgrounds) get the full canvas width. Print-like
+   documents (.doc-paper — @page/@media print/narrow column, see
+   detectPaperLayout) and blank documents (.doc-defaults) keep the
+   A4-ish paper sheet. */
+.doc-sheet:not(.doc-defaults):not(.doc-paper) {
+  max-width: none;
+  width: 100%;
+}
+
+.doc-content {
+  outline: none;
+  padding: 68px 76px;
+  min-height: 1056px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Default content styles with zero specificity (:where): they apply to
+   new/unstyled documents, but any CSS from an uploaded document always
+   takes precedence over them. */
+
+.doc-defaults .doc-content :where(p) {
+  margin: 0 0 0.6em;
+}
+
+.doc-defaults .doc-content :where(h1) {
+  font-size: 30px;
+  font-weight: 500;
+  margin: 0.8em 0 0.4em;
+}
+
+.doc-defaults .doc-content :where(h2) {
+  font-size: 24px;
+  font-weight: 500;
+  margin: 0.8em 0 0.4em;
+}
+
+.doc-defaults .doc-content :where(h3) {
+  font-size: 19px;
+  font-weight: 500;
+  margin: 0.8em 0 0.4em;
+}
+
+.doc-defaults .doc-content :where(h4, h5, h6) {
+  margin: 0.8em 0 0.4em;
+}
+
+.doc-defaults .doc-content :where(ul, ol) {
+  padding-left: 1.6em;
+  margin: 0 0 0.6em;
+}
+
+.doc-defaults .doc-content :where(blockquote) {
+  border-left: 3px solid var(--border);
+  padding-left: 14px;
+  color: var(--text-muted);
+  margin: 0.8em 0;
+}
+
+.doc-defaults .doc-content :where(pre) {
+  background: #f1f3f4;
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  overflow-x: auto;
+  margin: 0.8em 0;
+}
+
+.doc-defaults .doc-content :where(code) {
+  background: #f1f3f4;
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.doc-defaults .doc-content :where(pre code) {
+  background: none;
+  padding: 0;
+}
+
+.doc-defaults .doc-content :where(a) {
+  color: var(--primary);
+}
+
+.doc-content :where(img) {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Structural containment (applies to all documents): SVGs wider than
+   the sheet are scaled down to fit, without touching the document HTML.
+   With a viewBox the browser keeps the aspect ratio when shrinking. */
+.doc-content :where(svg) {
+  max-width: 100%;
+}
+
+.doc-content :where(svg[viewBox]) {
+  height: auto;
+}
+
+.doc-defaults .doc-content :where(hr) {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.2em 0;
+}
+
+.doc-defaults .doc-content :where(mark) {
+  background: #fff176;
+}
+
+.doc-defaults .doc-content :where(table) {
+  border-collapse: collapse;
+  margin: 0.8em 0;
+}
+
+.doc-defaults .doc-content :where(th, td) {
+  border: 1px solid #b7bcc2;
+  padding: 6px 10px;
+  vertical-align: top;
+}
+
+.doc-defaults .doc-content :where(th) {
+  background: #f1f3f4;
+  font-weight: 600;
+  text-align: left;
+}
+
+.doc-content .selectedCell {
+  background: rgba(60, 64, 67, 0.15);
+}
+
+/* ---------- Liquid Glass: shadcn components ---------- */
+
+[data-slot="button"] {
+  border-radius: 9999px;
+  backdrop-filter: blur(16px) saturate(160%);
+}
+
+[data-slot="input"] {
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.55);
+  border-color: var(--glass-border);
+  backdrop-filter: blur(16px) saturate(160%);
+}
+
+[data-slot="dialog-content"] {
+  border-radius: 24px;
+  border-color: var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: 0 24px 64px rgba(31, 38, 50, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+[data-slot="select-content"] {
+  border-radius: 16px;
+  border-color: var(--glass-border);
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: 0 12px 32px rgba(31, 38, 50, 0.16);
+}
+
+[data-slot="tooltip-content"] {
+  border-radius: 12px;
+  background: var(--tooltip-bg);
+  backdrop-filter: blur(18px) saturate(160%);
+}
+
+/* ---------- Collaborator cursors ---------- */
+
+/* Editor UI overlays rendered inside the document DOM: uploaded
+   documents often ship their own resets (e.g. `* { padding: 0 }`) that,
+   once scoped to .doc-sheet, would override these rules — hence
+   !important on every declaration. */
+.collaboration-cursor__caret {
+  /* Longhands on purpose: the `border-left: 1px solid` shorthand would
+     reset border-color to currentColor with !important, beating the
+     inline user color TipTap applies to the caret */
+  border-left-width: 1px !important;
+  border-left-style: solid !important;
+  border-right-width: 1px !important;
+  border-right-style: solid !important;
+  margin-left: -1px !important;
+  margin-right: -1px !important;
+  pointer-events: none !important;
+  position: relative !important;
+  word-break: normal !important;
+}
+
+.collaboration-cursor__label {
+  /* Pin the system UI font: it must not inherit the document's font */
+  font-family: var(--font-ui) !important;
+  /* The badge sits inside styled text (bold, italic, caps...): reset
+     every inheritable text property so the label is always consistent */
+  font-style: normal !important;
+  font-variant: normal !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+  text-indent: 0 !important;
+  border-radius: 9999px !important;
+  color: #fff !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  left: -1px !important;
+  line-height: normal !important;
+  padding: 2px 9px !important;
+  position: absolute !important;
+  top: -1.7em !important;
+  user-select: none !important;
+  white-space: nowrap !important;
+  margin: 0 !important;
+  /* Liquid glass: translucent tint of the user's identity color
+     (exposed as --user-color by the custom cursor renderer) */
+  background: color-mix(in srgb, var(--user-color, #5f6368) 62%, transparent) !important;
+  backdrop-filter: blur(10px) saturate(170%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  box-shadow: 0 2px 10px rgba(31, 38, 50, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+}
+
+/* ---------- Comments & selection menu ---------- */
+
+/* Commented text: subtle amber wash + underline. !important shields it
+   from the uploaded document's own CSS. */
+.doc-content span[data-comment-id] {
+  background: rgba(255, 214, 102, 0.35) !important;
+  border-bottom: 2px solid rgba(230, 162, 0, 0.75) !important;
+  cursor: pointer;
+}
+
+/* Editor UI mounted inside the sheet: not part of the document, so it
+   opts back into the app's box model */
+.selection-menu,
+.selection-menu *,
+.highlight-palette,
+.highlight-palette * {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+/* Liquid glass capsule for the selection menu — same recipe as the
+   toolbar: translucent surface, blur, light border, specular highlight */
+.selection-menu {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 9999px;
+  /* Stronger drop shadow so the capsule reads against plain white */
+  box-shadow: 0 6px 20px rgba(31, 38, 50, 0.28),
+    0 2px 6px rgba(31, 38, 50, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  padding: 3px;
+}
+
+.selection-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.sm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  border-radius: 9999px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  color: var(--text);
+}
+
+.sm-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.sm-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.sm-btn-active {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 4px rgba(31, 38, 50, 0.18);
+}
+
+/* Comment composer in the right margin, outside the sheet. The sheet is
+   850px wide and centered; min() keeps the balloon on-screen when the
+   viewport has no spare margin. */
+.margin-comment {
+  position: absolute;
+  left: min(calc(50% + 437px), calc(100% - 296px));
+  width: 280px;
+  z-index: 15;
+  transition: top 0.15s ease;
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  box-shadow: var(--glass-shadow);
+  padding: 10px;
+}
+
+.margin-comment-input {
+  width: 100%;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: var(--font-ui);
+  outline: none;
+  /* Height is managed by the auto-grow logic */
+  resize: none;
+  overflow-y: hidden;
+  min-height: 56px;
+}
+
+.margin-comment-input:focus {
+  border-color: var(--ring);
+}
+
+.margin-comment-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+/* Press-and-hold highlight color palette */
+.highlight-button-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.highlight-palette {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 9999px;
+  box-shadow: 0 6px 20px rgba(31, 38, 50, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  z-index: 40;
+}
+
+.highlight-palette--down {
+  top: calc(100% + 6px);
+}
+
+.highlight-palette--up {
+  bottom: calc(100% + 6px);
+}
+
+/* The palette attached to the selection menu breathes slightly more */
+.selection-menu .highlight-palette {
+  padding: 6px 9px;
+  gap: 6px;
+}
+
+
+.highlight-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid rgba(31, 38, 50, 0.25);
+  transition: transform 0.12s ease;
+}
+
+.highlight-swatch:hover {
+  transform: scale(1.18);
+}
+
+/* Card of the comment under the caret */
+.margin-comment--active {
+  border-color: var(--ring);
+  box-shadow: 0 12px 32px rgba(31, 38, 50, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  z-index: 16;
+}
+
+.comment-card {
+  padding: 8px 10px;
+  max-width: 320px;
+}
+
+.comment-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Edit/remove buttons: tight pair, compact inside the card */
+.comment-card-actions {
+  display: flex;
+  gap: 0;
+}
+
+.comment-card-actions .sm-btn {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 3px;
+  color: #9aa0a6;
+  transition: color 0.12s ease, background 0.12s ease, transform 0.12s ease;
+}
+
+.comment-card-actions .sm-btn:hover:not(:disabled) {
+  color: var(--text);
+  background: rgba(31, 38, 50, 0.08);
+  transform: scale(1.08);
+}
+
+.comment-author {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.comment-date {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin-right: auto;
+}
+
+.comment-text {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.45;
+  word-break: break-word;
+  /* Line breaks typed with Shift+Enter are part of the comment */
+  white-space: pre-wrap;
+}
+
+/* Comments taller than 5 lines collapse with a fade-out gradient
+   (masking the text itself works over the glass background) and expand
+   while the card is focused or its text range holds the caret */
+.comment-text--collapsible {
+  max-height: calc(5 * 1.45em);
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
+}
+
+.margin-comment:focus-within .comment-text--collapsible,
+.margin-comment--active .comment-text--collapsible {
+  max-height: none;
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
+.margin-comment:focus {
+  outline: none;
+}
+
+/* ---------- Document HTML (modal) ---------- */
+
+.modal-code {
+  overflow: auto;
+  padding: 16px 18px;
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  background: rgba(248, 249, 250, 0.72);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* AI Connect modal */
+.ai-connect-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  font-size: 0.875rem;
+}
+.ai-connect-section h3 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+.ai-connect-section ol,
+.ai-connect-section ul {
+  margin: 0 0 0 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.ai-connect-section ol { list-style: decimal; }
+.ai-connect-section ul { list-style: disc; }
+.ai-connect-code {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--bg-toolbar);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.ai-connect-code code {
+  flex: 1;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.78rem;
+  word-break: break-all;
+}
+.ai-connect-note {
+  margin-top: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* Error boundary / not-found actions */
+.error-retry {
+  margin-top: 0.75rem;
+  display: inline-block;
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: inherit;
+  text-decoration: none;
+}
+.error-retry:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* ---------- Liquid glass dialogs ---------- */
+
+[data-slot="dialog-overlay"] {
+  background: rgba(18, 22, 28, 0.32);
+  backdrop-filter: blur(6px);
+}
+
+[data-slot="dialog-content"] {
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow:
+    0 24px 64px rgba(31, 38, 50, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* Round glass chip for the dialog close (X) button */
+.dialog-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px) saturate(160%);
+  color: var(--text-muted);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.dialog-close:hover {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text);
+}
+.dialog-close svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Hamburger file-menu trigger: a proper glass chip, matching the
+   header capsules (the ghost button variant had no glass at all) */
+.file-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 16px rgba(31, 38, 50, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  color: var(--text);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+.file-menu-trigger:hover,
+.file-menu-trigger-open {
+  background: var(--glass-bg-strong);
+  box-shadow: 0 8px 24px rgba(31, 38, 50, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Collapsed edit-history label inside a comment card */
+.comment-history-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.comment-history-toggle:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+.comment-history {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-left: 2px solid var(--border);
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 6px;
+}
+.comment-history-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.comment-history-meta {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.comment-history-text {
+  font-size: 12px;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ---------- Version history sheet ---------- */
+
+/* No scrim: the history sheet is a side panel — the document stays
+   fully interactive (you preview and even edit past versions) while it
+   is open. It closes via its own X button or the toolbar toggle. */
+.history-sheet {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  width: 300px;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow:
+    -16px 0 48px rgba(31, 38, 50, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  /* Slides in from the right + subtle fade */
+  transform: translateX(calc(100% + 20px));
+  opacity: 0;
+  transition:
+    transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 260ms ease;
+}
+.history-sheet-in {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .history-sheet,
+  .history-scrim {
+    transition: none;
+  }
+}
+
+.history-sheet-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.history-sheet-close {
+  position: static;
+  margin-left: auto;
+}
+
+.history-sheet-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+}
+
+.history-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  border-radius: 10px;
+  text-align: left;
+  font-size: 13px;
+}
+.history-item {
+  transition: background 0.14s ease;
+}
+.history-item:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+.history-item-active,
+.history-item-active:hover {
+  background: rgba(32, 33, 36, 0.1);
+}
+.history-item-title {
+  font-weight: 500;
+}
+.history-item small {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.history-empty {
+  padding: 12px 10px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+/* Banner shown while previewing an old version */
+.history-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 24px 0;
+  padding: 8px 14px;
+  font-size: 13px;
+  border-radius: 14px;
+  background: rgba(255, 244, 214, 0.85);
+  border: 1px solid rgba(212, 180, 100, 0.5);
+  backdrop-filter: blur(10px);
+}
+.history-banner span {
+  margin-right: auto;
+}
+
+.doc-preview {
+  outline: none;
+  cursor: text;
+}

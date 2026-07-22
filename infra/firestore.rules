@@ -1,0 +1,34 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Signaling mailbox. The path's first segment is a ROOM id =
+    // SHA-256(editKey), never the document id — so a client that
+    // enumerates these collections (collectionGroup) learns only opaque
+    // hashes, never a document id (which would grant read access). Only
+    // edit-key holders can derive the room, and only editors signal.
+    // Payloads are AES-GCM encrypted with the edit key on top of that.
+    //
+    // No client ever deletes signaling docs — Firestore TTL (expireAt)
+    // reclaims them — so delete is denied to remove the DoS vector
+    // (previously `if true`, letting anyone wipe a room's handshake).
+    match /signaling/{room}/peers/{peerId} {
+      allow get, list: if true;
+      allow create, update: if request.resource.data.keys().hasOnly(['lastSeen', 'expireAt'])
+        && request.resource.data.lastSeen is int;
+      allow delete: if false;
+    }
+    match /signaling/{room}/messages/{messageId} {
+      allow get, list: if true;
+      allow create: if request.resource.data.payload is string
+        && request.resource.data.payload.size() < 65536
+        && request.resource.data.keys().hasOnly(['to', 'from', 'payload', 'createdAt', 'expireAt'])
+        && request.resource.data.to is string
+        && request.resource.data.from is string;
+      allow update, delete: if false;
+    }
+    // Everything else in Firestore stays closed to clients
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

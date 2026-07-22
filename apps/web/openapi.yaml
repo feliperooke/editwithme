@@ -1,0 +1,131 @@
+openapi: 3.0.3
+info:
+  title: HTML Docs API
+  description: Collaborative HTML documents API
+  version: 1.0.0
+paths:
+  /documents:
+    get:
+      operationId: listDocuments
+      summary: List all documents
+      responses:
+        "200":
+          description: Document list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DocumentSummary"
+    post:
+      operationId: createDocument
+      summary: Create a document (HTML upload or blank document)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDocumentInput"
+      responses:
+        "201":
+          description: Document created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+  /documents/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getDocument
+      summary: Fetch a document with its current HTML
+      responses:
+        "200":
+          description: Document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateDocument
+      summary: Update document metadata (title)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDocumentInput"
+      responses:
+        "200":
+          description: Document updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+    delete:
+      operationId: deleteDocument
+      summary: Delete a document
+      responses:
+        "204":
+          description: Deleted
+components:
+  schemas:
+    DocumentSummary:
+      type: object
+      required: [id, title, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        editToken:
+          type: string
+          description: Write-capability token. Returned by list/create (owner surface); never by single-document GET.
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+    Document:
+      allOf:
+        - $ref: "#/components/schemas/DocumentSummary"
+        - type: object
+          required: [html]
+          properties:
+            html:
+              type: string
+            headHtml:
+              type: string
+              nullable: true
+              description: Original <head> content (styles, fonts, meta), preserved unchanged
+            bodyAttrs:
+              type: string
+              nullable: true
+              description: Original <body> attributes as serialized JSON
+    CreateDocumentInput:
+      type: object
+      required: [title, html]
+      properties:
+        title:
+          type: string
+        html:
+          type: string
+        headHtml:
+          type: string
+          nullable: true
+        bodyAttrs:
+          type: string
+          nullable: true
+    UpdateDocumentInput:
+      type: object
+      properties:
+        title:
+          type: string
+        headHtml:
+          type: string
+          description: Full replacement for the preserved <head> content (e.g. appending a marked style block)

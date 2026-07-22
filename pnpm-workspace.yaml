@@ -1,0 +1,11 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+allowBuilds:
+  '@firebase/util': true
+  '@scarf/scarf': false
+  better-sqlite3: true
+  esbuild: true
+  protobufjs: true
+  puppeteer: true
+  sharp: true
