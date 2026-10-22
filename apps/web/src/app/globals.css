@@ -457,6 +457,14 @@
   margin-left: auto;
 }
 
+/* On phones the header actions wrap instead of widening the page
+   (which pushed edge-pinned UI, like the minimap, off-screen) */
+@media (max-width: 899px) {
+  .editor-header-right {
+    flex-wrap: wrap;
+  }
+}
+
 /* ---------- Share menu & view mode ---------- */
 
 .share-menu-wrap {
@@ -646,9 +654,19 @@
 
 /* ---------- Document sheet ---------- */
 
+/* Canvas + minimap side by side: the minimap reserves its own column,
+   so the sheet, the comments margin and the outline (all positioned
+   relative to the canvas) re-center in the remaining width */
+.editor-body {
+  position: relative;
+  display: flex;
+  flex: 1;
+}
+
 .editor-canvas {
   position: relative;
   flex: 1;
+  min-width: 0;
   padding: 20px 16px 80px;
 }
 
@@ -953,6 +971,207 @@
 .sm-btn-active {
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 1px 4px rgba(31, 38, 50, 0.18);
+}
+
+/* ---------- Document outline ---------- */
+
+/* Column to the left of the sheet, spanning the whole canvas so the
+   panel inside can stick under the toolbar while the page scrolls. With
+   spare margin (paper sheet, wide screen) it sits beside the sheet; when
+   there is none (full-canvas layouts, narrow screens) max() pins it to
+   the edge and the glass panel floats over the content. */
+.doc-outline {
+  position: absolute;
+  top: 20px;
+  bottom: 0;
+  left: max(16px, calc(50% - 425px - 24px - 240px));
+  width: min(240px, calc(100% - 32px));
+  /* Over the sheet, under the toolbar capsule (z 30) */
+  z-index: 20;
+  pointer-events: none;
+}
+
+.doc-outline-panel {
+  position: sticky;
+  /* Just under the sticky toolbar */
+  top: 72px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 92px);
+  pointer-events: auto;
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: var(--glass-shadow);
+  padding: 8px 6px 10px;
+}
+
+/* View-only mode has no toolbar to clear */
+.doc-outline--no-toolbar .doc-outline-panel {
+  top: 16px;
+  max-height: calc(100vh - 32px);
+}
+
+.doc-outline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px 6px 10px;
+}
+
+.doc-outline-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.doc-outline-empty {
+  padding: 4px 10px 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.doc-outline-list {
+  /* offsetParent of the items, for keeping the active one in view */
+  position: relative;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.doc-outline-item {
+  display: block;
+  width: 100%;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.doc-outline-item--root {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.doc-outline-item:hover {
+  background: rgba(31, 38, 50, 0.06);
+  color: var(--text);
+}
+
+.doc-outline-item--active {
+  background: rgba(31, 38, 50, 0.09);
+  color: var(--text);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.doc-outline-item:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+/* ---------- Document minimap ---------- */
+
+.doc-minimap {
+  flex: none;
+  width: 104px;
+  padding: 20px 12px 0 4px;
+}
+
+/* Sticks under the toolbar, as tall as the viewport allows */
+.doc-minimap-strip {
+  position: sticky;
+  top: 72px;
+  height: calc(100vh - 92px);
+  overflow: hidden;
+  border-radius: 10px;
+  cursor: default;
+  touch-action: none;
+  user-select: none;
+}
+
+.doc-minimap--no-toolbar .doc-minimap-strip {
+  top: 16px;
+  height: calc(100vh - 32px);
+}
+
+.doc-minimap-canvas {
+  display: block;
+  width: 100%;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(31, 38, 50, 0.1);
+}
+
+/* Visible region. A neutral slate tint reads on light and dark
+   documents alike. */
+.doc-minimap-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-radius: 4px;
+  background: rgba(100, 116, 139, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(100, 116, 139, 0.35);
+  transition: background 0.12s ease;
+}
+
+.doc-minimap-strip:hover .doc-minimap-band {
+  background: rgba(100, 116, 139, 0.26);
+}
+
+.doc-minimap-band--dragging,
+.doc-minimap-strip:hover .doc-minimap-band--dragging {
+  background: rgba(100, 116, 139, 0.34);
+}
+
+/* Wide enough for sheet + comments column + minimap side by side
+   (2 × (437 + 296 + 104) ≈ 1680px): the paper sheet keeps its place and
+   the minimap sits in the spare margin instead of reserving a column.
+   Full-canvas documents have no margin, so they always reserve it. */
+@media (min-width: 1680px) {
+  .editor-body:not(.editor-body--full-canvas) .doc-minimap {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+  }
+}
+
+/* Narrow screens: no column to spare — the minimap opens as a floating
+   glass strip over the content */
+@media (max-width: 899px) {
+  .doc-minimap,
+  .doc-minimap--no-toolbar {
+    position: fixed;
+    top: 16px;
+    right: 8px;
+    bottom: 16px;
+    width: 72px;
+    z-index: 25;
+    padding: 6px;
+    background: var(--glass-bg-strong);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    box-shadow: var(--glass-shadow);
+  }
+
+  .doc-minimap-strip,
+  .doc-minimap--no-toolbar .doc-minimap-strip {
+    position: relative;
+    top: 0;
+    height: 100%;
+  }
 }
 
 /* Comment composer in the right margin, outside the sheet. The sheet is
