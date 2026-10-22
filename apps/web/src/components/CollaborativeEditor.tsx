@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as Y from "yjs";
@@ -17,7 +17,7 @@ import {
   useGetDocument,
   useUpdateDocument,
 } from "@/api/generated/endpoints";
-import { History, Sparkles } from "lucide-react";
+import { History, ListTree, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -36,6 +36,9 @@ import { SelectionMenu } from "@/components/SelectionMenu";
 import { ShareMenu } from "@/components/ShareMenu";
 import { FileMenu } from "@/components/FileMenu";
 import { MarginCommentDraft } from "@/components/MarginCommentDraft";
+import { DocumentOutline } from "@/components/DocumentOutline";
+import { useDocumentStructure } from "@/lib/useDocumentStructure";
+import { usePanelPreference } from "@/lib/usePanelPreference";
 import {
   CommentsMargin,
   type MarginCommentInfo,
@@ -321,6 +324,57 @@ function EditorSession({
     },
     [provider]
   );
+
+  // Outline: read from whichever document is on screen — the version
+  // snapshot while previewing, the live editor otherwise. Opens by
+  // default only when there is something to navigate.
+  const [previewEl, setPreviewEl] = useState<HTMLDivElement | null>(null);
+  // Stable callback (an inline one re-runs with null/el on every render,
+  // which would churn previewEl): exposes the snapshot element and guards
+  // it — the first actual edit is blocked and raises the restore question
+  const previewRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      setPreviewEl(el);
+      // Detach a previous listener when the node changes/unmounts
+      previewGuardCleanup.current?.();
+      previewGuardCleanup.current = null;
+      if (!el || viewMode) return;
+      const onBeforeInput = (event: Event) => {
+        event.preventDefault();
+        setConfirmRestore(true);
+      };
+      el.addEventListener("beforeinput", onBeforeInput);
+      previewGuardCleanup.current = () =>
+        el.removeEventListener("beforeinput", onBeforeInput);
+    },
+    [viewMode]
+  );
+  const { headings } = useDocumentStructure(
+    previewVersion ? previewEl : (editor?.view.dom ?? null)
+  );
+  const outline = usePanelPreference("outline", headings.length >= 2);
+
+  // Ctrl/Cmd+Shift+O toggles the outline (as in VS Code). The ref keeps
+  // one listener for the session while always calling the fresh toggle.
+  const toggleOutlineRef = useRef(outline.toggle);
+  useEffect(() => {
+    toggleOutlineRef.current = outline.toggle;
+  });
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.shiftKey &&
+        !event.altKey &&
+        event.key.toLowerCase() === "o"
+      ) {
+        event.preventDefault();
+        toggleOutlineRef.current();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   // The field may stay empty while the user types; the "Anonymous"
   // fallback only applies to what others see (awareness) and is written
@@ -731,6 +785,17 @@ function EditorSession({
           <Button
             variant="outline"
             size="sm"
+            aria-label="Outline"
+            aria-pressed={outline.open}
+            title="Outline (Ctrl/⌘+Shift+O)"
+            className={outline.open ? "bg-accent" : undefined}
+            onClick={outline.toggle}
+          >
+            <ListTree />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             aria-label="Version history"
             title="Version history"
             onClick={() => {
@@ -782,6 +847,16 @@ function EditorSession({
 
       <div className="editor-canvas" ref={canvasRef}>
         {docCss && <style dangerouslySetInnerHTML={{ __html: docCss }} />}
+        {outline.open && (
+          <DocumentOutline
+            headings={headings}
+            hasToolbar={!viewMode}
+            // On narrow screens the outline is an overlay over the text:
+            // it gets out of the way once the reader has picked a section
+            onNavigate={outline.narrow ? () => outline.setOpen(false) : undefined}
+            onClose={() => outline.setOpen(false)}
+          />
+        )}
         <div
           className={[
             "doc-sheet",
@@ -832,19 +907,7 @@ function EditorSession({
               contentEditable={!viewMode}
               suppressContentEditableWarning
               spellCheck={false}
-              ref={(el) => {
-                // Detach a previous listener when the node changes/unmounts
-                previewGuardCleanup.current?.();
-                previewGuardCleanup.current = null;
-                if (!el || viewMode) return;
-                const onBeforeInput = (event: Event) => {
-                  event.preventDefault();
-                  setConfirmRestore(true);
-                };
-                el.addEventListener("beforeinput", onBeforeInput);
-                previewGuardCleanup.current = () =>
-                  el.removeEventListener("beforeinput", onBeforeInput);
-              }}
+              ref={previewRef}
               dangerouslySetInnerHTML={{ __html: previewVersion.html }}
             />
           )}

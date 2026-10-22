@@ -955,6 +955,114 @@
   box-shadow: 0 1px 4px rgba(31, 38, 50, 0.18);
 }
 
+/* ---------- Document outline ---------- */
+
+/* Column to the left of the sheet, spanning the whole canvas so the
+   panel inside can stick under the toolbar while the page scrolls. With
+   spare margin (paper sheet, wide screen) it sits beside the sheet; when
+   there is none (full-canvas layouts, narrow screens) max() pins it to
+   the edge and the glass panel floats over the content. */
+.doc-outline {
+  position: absolute;
+  top: 20px;
+  bottom: 0;
+  left: max(16px, calc(50% - 425px - 24px - 240px));
+  width: min(240px, calc(100% - 32px));
+  /* Over the sheet, under the toolbar capsule (z 30) */
+  z-index: 20;
+  pointer-events: none;
+}
+
+.doc-outline-panel {
+  position: sticky;
+  /* Just under the sticky toolbar */
+  top: 72px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 92px);
+  pointer-events: auto;
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: var(--glass-shadow);
+  padding: 8px 6px 10px;
+}
+
+/* View-only mode has no toolbar to clear */
+.doc-outline--no-toolbar .doc-outline-panel {
+  top: 16px;
+  max-height: calc(100vh - 32px);
+}
+
+.doc-outline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px 6px 10px;
+}
+
+.doc-outline-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.doc-outline-empty {
+  padding: 4px 10px 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.doc-outline-list {
+  /* offsetParent of the items, for keeping the active one in view */
+  position: relative;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.doc-outline-item {
+  display: block;
+  width: 100%;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.doc-outline-item--root {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.doc-outline-item:hover {
+  background: rgba(31, 38, 50, 0.06);
+  color: var(--text);
+}
+
+.doc-outline-item--active {
+  background: rgba(31, 38, 50, 0.09);
+  color: var(--text);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.doc-outline-item:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
 /* Comment composer in the right margin, outside the sheet. The sheet is
    850px wide and centered; min() keeps the balloon on-screen when the
    viewport has no spare margin. */
