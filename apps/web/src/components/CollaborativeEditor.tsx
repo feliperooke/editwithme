@@ -17,7 +17,7 @@ import {
   useGetDocument,
   useUpdateDocument,
 } from "@/api/generated/endpoints";
-import { History, ListTree, Sparkles } from "lucide-react";
+import { History, ListTree, MapIcon, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -37,6 +37,7 @@ import { ShareMenu } from "@/components/ShareMenu";
 import { FileMenu } from "@/components/FileMenu";
 import { MarginCommentDraft } from "@/components/MarginCommentDraft";
 import { DocumentOutline } from "@/components/DocumentOutline";
+import { DocumentMinimap } from "@/components/DocumentMinimap";
 import { useDocumentStructure } from "@/lib/useDocumentStructure";
 import { usePanelPreference } from "@/lib/usePanelPreference";
 import {
@@ -349,10 +350,10 @@ function EditorSession({
     },
     [viewMode]
   );
-  const { headings } = useDocumentStructure(
-    previewVersion ? previewEl : (editor?.view.dom ?? null)
-  );
+  const structureRoot = previewVersion ? previewEl : (editor?.view.dom ?? null);
+  const { headings } = useDocumentStructure(structureRoot);
   const outline = usePanelPreference("outline", headings.length >= 2);
+  const minimap = usePanelPreference("minimap", true);
 
   // Ctrl/Cmd+Shift+O toggles the outline (as in VS Code). The ref keeps
   // one listener for the session while always calling the fresh toggle.
@@ -796,6 +797,17 @@ function EditorSession({
           <Button
             variant="outline"
             size="sm"
+            aria-label="Minimap"
+            aria-pressed={minimap.open}
+            title="Minimap"
+            className={minimap.open ? "bg-accent" : undefined}
+            onClick={minimap.toggle}
+          >
+            <MapIcon />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             aria-label="Version history"
             title="Version history"
             onClick={() => {
@@ -845,87 +857,104 @@ function EditorSession({
         </div>
       )}
 
-      <div className="editor-canvas" ref={canvasRef}>
-        {docCss && <style dangerouslySetInnerHTML={{ __html: docCss }} />}
-        {outline.open && (
-          <DocumentOutline
-            headings={headings}
-            hasToolbar={!viewMode}
-            // On narrow screens the outline is an overlay over the text:
-            // it gets out of the way once the reader has picked a section
-            onNavigate={outline.narrow ? () => outline.setOpen(false) : undefined}
-            onClose={() => outline.setOpen(false)}
-          />
-        )}
-        <div
-          className={[
-            "doc-sheet",
-            // Uploaded documents render with their own CSS only (as in the
-            // browser); the editor's visual defaults apply only to blank
-            // documents created in the app.
-            !doc || doc.headHtml == null ? "doc-defaults" : "",
-            // Print-like uploaded documents keep the A4 paper sheet;
-            // viewport layouts get the full canvas (see detectPaperLayout)
-            doc?.headHtml != null && paperLayout ? "doc-paper" : "",
-            bodyAttrs.class ?? "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          ref={(el) => {
-            if (el) el.style.cssText = bodyAttrs.style ?? "";
-          }}
-          onClick={() => {
-            if (!previewVersion) editor?.commands.focus();
-          }}
-        >
-          {/* The live editor is HIDDEN (never unmounted) while a version
-              preview shows: ProseMirror owns its DOM and unmounting
-              EditorContent mid-swap crashes React reconciliation */}
-          <div style={{ display: previewVersion ? "none" : undefined }}>
-            {editor && !viewMode && (
-              <SelectionMenu
-                editor={editor}
-                onStartComment={startComment}
-                draftOpenRef={draftOpenRef}
+      <div
+        className={
+          doc?.headHtml != null && !paperLayout
+            ? "editor-body editor-body--full-canvas"
+            : "editor-body"
+        }
+      >
+        <div className="editor-canvas" ref={canvasRef}>
+          {docCss && <style dangerouslySetInnerHTML={{ __html: docCss }} />}
+          {outline.open && (
+            <DocumentOutline
+              headings={headings}
+              hasToolbar={!viewMode}
+              // On narrow screens the outline is an overlay over the text:
+              // it gets out of the way once the reader has picked a section
+              onNavigate={outline.narrow ? () => outline.setOpen(false) : undefined}
+              onClose={() => outline.setOpen(false)}
+            />
+          )}
+          <div
+            className={[
+              "doc-sheet",
+              // Uploaded documents render with their own CSS only (as in the
+              // browser); the editor's visual defaults apply only to blank
+              // documents created in the app.
+              !doc || doc.headHtml == null ? "doc-defaults" : "",
+              // Print-like uploaded documents keep the A4 paper sheet;
+              // viewport layouts get the full canvas (see detectPaperLayout)
+              doc?.headHtml != null && paperLayout ? "doc-paper" : "",
+              bodyAttrs.class ?? "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            ref={(el) => {
+              if (el) el.style.cssText = bodyAttrs.style ?? "";
+            }}
+            onClick={() => {
+              if (!previewVersion) editor?.commands.focus();
+            }}
+          >
+            {/* The live editor is HIDDEN (never unmounted) while a version
+                preview shows: ProseMirror owns its DOM and unmounting
+                EditorContent mid-swap crashes React reconciliation */}
+            <div style={{ display: previewVersion ? "none" : undefined }}>
+              {editor && !viewMode && (
+                <SelectionMenu
+                  editor={editor}
+                  onStartComment={startComment}
+                  draftOpenRef={draftOpenRef}
+                />
+              )}
+              <EditorContent editor={editor} />
+            </div>
+            {previewVersion && (
+              // The version snapshot in place of the live document. It is
+              // editable (cursor placeable, selectable), but the FIRST
+              // actual change is intercepted by a NATIVE beforeinput
+              // listener (React's onBeforeInput is unreliable on
+              // contentEditable): any edit — typing, paste, delete — is
+              // blocked with preventDefault (so the DOM never mutates and
+              // React stays consistent) and raises the restore-risk
+              // question. Cursor movement/selection is not an input event,
+              // so reading stays fluid.
+              <div
+                key={previewVersion.at}
+                className="doc-content doc-preview"
+                contentEditable={!viewMode}
+                suppressContentEditableWarning
+                spellCheck={false}
+                ref={previewRef}
+                dangerouslySetInnerHTML={{ __html: previewVersion.html }}
               />
             )}
-            <EditorContent editor={editor} />
           </div>
-          {previewVersion && (
-            // The version snapshot in place of the live document. It is
-            // editable (cursor placeable, selectable), but the FIRST
-            // actual change is intercepted by a NATIVE beforeinput
-            // listener (React's onBeforeInput is unreliable on
-            // contentEditable): any edit — typing, paste, delete — is
-            // blocked with preventDefault (so the DOM never mutates and
-            // React stays consistent) and raises the restore-risk
-            // question. Cursor movement/selection is not an input event,
-            // so reading stays fluid.
-            <div
-              key={previewVersion.at}
-              className="doc-content doc-preview"
-              contentEditable={!viewMode}
-              suppressContentEditableWarning
-              spellCheck={false}
-              ref={previewRef}
-              dangerouslySetInnerHTML={{ __html: previewVersion.html }}
+          {editor && commentDraftTop !== null && (
+            <MarginCommentDraft
+              top={commentDraftTop}
+              onSubmit={submitComment}
+              onCancel={closeCommentDraft}
+            />
+          )}
+          {editor && comments.length > 0 && (
+            <CommentsMargin
+              comments={comments}
+              activeId={activeCommentId}
+              onRemove={removeCommentById}
+              onEdit={updateCommentText}
+              readOnly={viewMode}
             />
           )}
         </div>
-        {editor && commentDraftTop !== null && (
-          <MarginCommentDraft
-            top={commentDraftTop}
-            onSubmit={submitComment}
-            onCancel={closeCommentDraft}
-          />
-        )}
-        {editor && comments.length > 0 && (
-          <CommentsMargin
-            comments={comments}
-            activeId={activeCommentId}
-            onRemove={removeCommentById}
-            onEdit={updateCommentText}
-            readOnly={viewMode}
+        {minimap.open && (
+          <DocumentMinimap
+            root={structureRoot}
+            // Comments and cursors belong to the live document, not to a
+            // version snapshot
+            markers={!previewVersion}
+            hasToolbar={!viewMode}
           />
         )}
       </div>
